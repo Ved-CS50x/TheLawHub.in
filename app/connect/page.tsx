@@ -38,6 +38,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { FadeInSection } from "@/components/fade-in-section"
 
 export default function ConnectPage() {
   const [newPost, setNewPost] = useState("")
@@ -235,319 +236,331 @@ export default function ConnectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header */}
-        <div className="mb-8 bg-black text-white p-6 rounded-lg text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Users className="w-12 h-12 text-gold-500 mr-3" />
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-white">Connect</h1>
-              <p className="text-lg text-gold-500 font-medium">CommuniTea</p>
-            </div>
-          </div>
-          <p className="text-gold-500 max-w-2xl mx-auto">
-            Share. Connect. Build - From informal chats to exposing the lazy administration, TLH-Connects relate and
-            understands.
-          </p>
-        </div>
-
-        {/* Create Post */}
-        <Card className="border-2 border-black bg-white mb-8">
-          <CardHeader>
-            <div className="flex items-center space-x-3">
-              {!isAnonymous ? (
-                <Avatar className="w-10 h-10 border-2 border-gold-500">
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                  <AvatarFallback className="bg-gold-500 text-black">AK</AvatarFallback>
-                </Avatar>
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  <UserX className="w-6 h-6 text-gray-600" />
-                </div>
-              )}
-              <div>
-                <p className="font-medium text-black">{isAnonymous ? "Anonymous" : "Arjun Kumar"}</p>
-                <p className="text-sm text-gray-600">{isAnonymous ? "Hidden" : "NLSIU Bangalore"}</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Share something with your fellow law students..."
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-              className="border-2 border-black resize-none"
-              rows={3}
-            />
-
-            {selectedImage && (
-              <div className="relative">
-                <img
-                  src={URL.createObjectURL(selectedImage) || "/placeholder.svg"}
-                  alt="Selected"
-                  className="w-full h-48 object-cover rounded-lg border-2 border-gold-500"
-                />
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="absolute top-2 right-2"
-                  onClick={() => setSelectedImage(null)}
-                >
-                  Remove
-                </Button>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-4">
-                <label htmlFor="image-upload">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-gold-500 text-gold-600 hover:bg-gold-50"
-                    asChild
-                  >
-                    <span>
-                      <ImageIcon className="w-4 h-4 mr-2" />
-                      Photo
-                    </span>
-                  </Button>
-                </label>
-                <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-
-                <div className="flex items-center space-x-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Switch
-                          id="anonymous-mode"
-                          checked={isAnonymous}
-                          onCheckedChange={setIsAnonymous}
-                          disabled={anonymousPostsToday >= 2}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {anonymousPostsToday >= 2
-                          ? "You've reached your anonymous post limit for today"
-                          : `Anonymous posts today: ${anonymousPostsToday}/2`}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <Label htmlFor="anonymous-mode" className="text-sm text-gray-600">
-                    Post anonymously {anonymousPostsToday >= 2 && "(Limit reached)"}
-                  </Label>
+    <FadeInSection>
+      <div className="min-h-screen bg-gray-100 py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
+          {/* Header */}
+          <FadeInSection delay={100}>
+            <div className="mb-8 bg-black text-white p-6 rounded-lg text-center">
+              <div className="flex items-center justify-center mb-4">
+                <Users className="w-12 h-12 text-gold-500 mr-3" />
+                <div className="text-center">
+                  <h1 className="text-3xl font-bold text-white">Connect</h1>
+                  <p className="text-lg text-gold-500 font-medium">CommuniTea</p>
                 </div>
               </div>
-              <Button
-                onClick={handlePost}
-                disabled={!newPost.trim() && !selectedImage}
-                className="bg-gold-500 text-black hover:bg-gold-600"
-              >
-                <Send className="w-4 h-4 mr-2" />
-                Post
-              </Button>
+              <p className="text-gold-500 max-w-2xl mx-auto">
+                Share. Connect. Build - From informal chats to exposing the lazy administration, TLH-Connects relate and
+                understands.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </FadeInSection>
 
-        {/* Posts Feed */}
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <Card key={post.id} className="border-2 border-black bg-white">
+          {/* Create Post */}
+          <FadeInSection delay={200}>
+            <Card className="border-2 border-black bg-white mb-8">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {post.isAnonymous ? (
-                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <UserX className="w-6 h-6 text-gray-600" />
-                      </div>
-                    ) : (
-                      <Avatar className="w-10 h-10 border-2 border-gold-500">
-                        <AvatarImage src={post.avatar || "/placeholder.svg"} />
-                        <AvatarFallback className="bg-gold-500 text-black">
-                          {post.author
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div>
-                      <p className="font-medium text-black">{post.author}</p>
-                      <div className="flex items-center space-x-2">
-                        <Badge className="bg-gold-500 text-black text-xs">{post.university}</Badge>
-                        <span className="text-sm text-gray-500">{post.time}</span>
-                      </div>
+                <div className="flex items-center space-x-3">
+                  {!isAnonymous ? (
+                    <Avatar className="w-10 h-10 border-2 border-gold-500">
+                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                      <AvatarFallback className="bg-gold-500 text-black">AK</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                      <UserX className="w-6 h-6 text-gray-600" />
                     </div>
+                  )}
+                  <div>
+                    <p className="font-medium text-black">{isAnonymous ? "Anonymous" : "Arjun Kumar"}</p>
+                    <p className="text-sm text-gray-600">{isAnonymous ? "Hidden" : "NLSIU Bangalore"}</p>
                   </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {!post.isAnonymous && (
-                        <>
-                          <DropdownMenuItem onClick={() => handleEditPost(post.id)}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Edit Post
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeletePost(post.id)}>
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete Post
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      <DropdownMenuItem onClick={() => handleReportPost(post.id)}>
-                        <Flag className="w-4 h-4 mr-2" />
-                        Report Post
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {editingPost === post.id ? (
-                  <div className="space-y-4">
-                    <Textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="border-2 border-black resize-none"
-                      rows={3}
+                <Textarea
+                  placeholder="Share something with your fellow law students..."
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  className="border-2 border-black resize-none"
+                  rows={3}
+                />
+
+                {selectedImage && (
+                  <div className="relative">
+                    <img
+                      src={URL.createObjectURL(selectedImage) || "/placeholder.svg"}
+                      alt="Selected"
+                      className="w-full h-48 object-cover rounded-lg border-2 border-gold-500"
                     />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2"
+                      onClick={() => setSelectedImage(null)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
 
-                    {editImage ? (
-                      <div className="relative">
-                        <img
-                          src={URL.createObjectURL(editImage) || "/placeholder.svg"}
-                          alt="Edit preview"
-                          className="w-full h-64 object-cover rounded-lg border border-gray-200"
-                        />
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="absolute top-2 right-2"
-                          onClick={() => setEditImage(null)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ) : post.image ? (
-                      <div className="relative">
-                        <img
-                          src={post.image || "/placeholder.svg"}
-                          alt="Current image"
-                          className="w-full h-64 object-cover rounded-lg border border-gray-200"
-                        />
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="absolute top-2 right-2"
-                          onClick={() => setPosts(posts.map((p) => (p.id === post.id ? { ...p, image: null } : p)))}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <label htmlFor={`edit-image-${post.id}`}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-gold-500 text-gold-600 hover:bg-gold-50"
-                            asChild
-                          >
-                            <span>
-                              <ImageIcon className="w-4 h-4 mr-2" />
-                              Add Image
-                            </span>
-                          </Button>
-                        </label>
-                        <input
-                          id={`edit-image-${post.id}`}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </div>
-                    )}
+                <div className="flex items-center justify-between">
+                  <div className="flex space-x-4">
+                    <label htmlFor="image-upload">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-gold-500 text-gold-600 hover:bg-gold-50"
+                        asChild
+                      >
+                        <span>
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          Photo
+                        </span>
+                      </Button>
+                    </label>
+                    <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
 
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="sm" onClick={cancelEdit}>
-                        <X className="w-4 h-4 mr-2" />
-                        Cancel
-                      </Button>
-                      <Button size="sm" className="bg-gold-500 text-black hover:bg-gold-600" onClick={saveEditedPost}>
-                        <Check className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </Button>
+                    <div className="flex items-center space-x-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Switch
+                              id="anonymous-mode"
+                              checked={isAnonymous}
+                              onCheckedChange={setIsAnonymous}
+                              disabled={anonymousPostsToday >= 2}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {anonymousPostsToday >= 2
+                              ? "You've reached your anonymous post limit for today"
+                              : `Anonymous posts today: ${anonymousPostsToday}/2`}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <Label htmlFor="anonymous-mode" className="text-sm text-gray-600">
+                        Post anonymously {anonymousPostsToday >= 2 && "(Limit reached)"}
+                      </Label>
                     </div>
                   </div>
-                ) : (
-                  <>
-                    <p className="text-gray-800 leading-relaxed">{post.content}</p>
-
-                    {post.image && (
-                      <img
-                        src={post.image || "/placeholder.svg"}
-                        alt="Post content"
-                        className="w-full h-64 object-cover rounded-lg border border-gray-200"
-                      />
-                    )}
-                  </>
-                )}
-
-                {editingPost !== post.id && (
-                  <>
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <div className="flex space-x-6">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`flex items-center space-x-2 ${post.isLiked ? "text-red-500" : "text-gray-600"}`}
-                        >
-                          <Heart className={`w-4 h-4 ${post.isLiked ? "fill-current" : ""}`} />
-                          <span>{post.likes}</span>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="flex items-center space-x-2 text-gray-600">
-                          <MessageCircle className="w-4 h-4" />
-                          <span>{post.comments}</span>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="flex items-center space-x-2 text-gray-600">
-                          <Share2 className="w-4 h-4" />
-                          <span>Share</span>
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Comment Section */}
-                    <div className="space-y-3">
-                      <div className="flex space-x-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                          <AvatarFallback className="bg-gold-500 text-black text-xs">AK</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <Input placeholder="Write a comment..." className="border-gray-300 text-sm" />
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
+                  <Button
+                    onClick={handlePost}
+                    disabled={!newPost.trim() && !selectedImage}
+                    className="bg-gold-500 text-black hover:bg-gold-600"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Post
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+          </FadeInSection>
 
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <Button variant="outline" className="border-black text-black hover:bg-black hover:text-gold-500">
-            Load More Posts
-          </Button>
+          {/* Posts Feed */}
+          <FadeInSection delay={300}>
+            <div className="space-y-6">
+              {posts.map((post, index) => (
+                <FadeInSection key={post.id} delay={400 + index * 100}>
+                  <Card className="border-2 border-black bg-white">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {post.isAnonymous ? (
+                            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                              <UserX className="w-6 h-6 text-gray-600" />
+                            </div>
+                          ) : (
+                            <Avatar className="w-10 h-10 border-2 border-gold-500">
+                              <AvatarImage src={post.avatar || "/placeholder.svg"} />
+                              <AvatarFallback className="bg-gold-500 text-black">
+                                {post.author
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div>
+                            <p className="font-medium text-black">{post.author}</p>
+                            <div className="flex items-center space-x-2">
+                              <Badge className="bg-gold-500 text-black text-xs">{post.university}</Badge>
+                              <span className="text-sm text-gray-500">{post.time}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!post.isAnonymous && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleEditPost(post.id)}>
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Edit Post
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeletePost(post.id)}>
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Post
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuItem onClick={() => handleReportPost(post.id)}>
+                              <Flag className="w-4 h-4 mr-2" />
+                              Report Post
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {editingPost === post.id ? (
+                        <div className="space-y-4">
+                          <Textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="border-2 border-black resize-none"
+                            rows={3}
+                          />
+
+                          {editImage ? (
+                            <div className="relative">
+                              <img
+                                src={URL.createObjectURL(editImage) || "/placeholder.svg"}
+                                alt="Edit preview"
+                                className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                              />
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="absolute top-2 right-2"
+                                onClick={() => setEditImage(null)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ) : post.image ? (
+                            <div className="relative">
+                              <img
+                                src={post.image || "/placeholder.svg"}
+                                alt="Current image"
+                                className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                              />
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="absolute top-2 right-2"
+                                onClick={() => setPosts(posts.map((p) => (p.id === post.id ? { ...p, image: null } : p)))}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <label htmlFor={`edit-image-${post.id}`}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-gold-500 text-gold-600 hover:bg-gold-50"
+                                  asChild
+                                >
+                                  <span>
+                                    <ImageIcon className="w-4 h-4 mr-2" />
+                                    Add Image
+                                  </span>
+                                </Button>
+                              </label>
+                              <input
+                                id={`edit-image-${post.id}`}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="outline" size="sm" onClick={cancelEdit}>
+                              <X className="w-4 h-4 mr-2" />
+                              Cancel
+                            </Button>
+                            <Button size="sm" className="bg-gold-500 text-black hover:bg-gold-600" onClick={saveEditedPost}>
+                              <Check className="w-4 h-4 mr-2" />
+                              Save Changes
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-gray-800 leading-relaxed">{post.content}</p>
+
+                          {post.image && (
+                            <img
+                              src={post.image || "/placeholder.svg"}
+                              alt="Post content"
+                              className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                            />
+                          )}
+                        </>
+                      )}
+
+                      {editingPost !== post.id && (
+                        <>
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                            <div className="flex space-x-6">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={`flex items-center space-x-2 ${post.isLiked ? "text-red-500" : "text-gray-600"}`}
+                              >
+                                <Heart className={`w-4 h-4 ${post.isLiked ? "fill-current" : ""}`} />
+                                <span>{post.likes}</span>
+                              </Button>
+                              <Button variant="ghost" size="sm" className="flex items-center space-x-2 text-gray-600">
+                                <MessageCircle className="w-4 h-4" />
+                                <span>{post.comments}</span>
+                              </Button>
+                              <Button variant="ghost" size="sm" className="flex items-center space-x-2 text-gray-600">
+                                <Share2 className="w-4 h-4" />
+                                <span>Share</span>
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Comment Section */}
+                          <div className="space-y-3">
+                            <div className="flex space-x-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                                <AvatarFallback className="bg-gold-500 text-black text-xs">AK</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <Input placeholder="Write a comment..." className="border-gray-300 text-sm" />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </FadeInSection>
+              ))}
+            </div>
+          </FadeInSection>
+
+          {/* Load More */}
+          <FadeInSection delay={500}>
+            <div className="text-center mt-8">
+              <Button variant="outline" className="border-black text-black hover:bg-black hover:text-gold-500">
+                Load More Posts
+              </Button>
+            </div>
+          </FadeInSection>
         </div>
       </div>
 
@@ -629,6 +642,6 @@ export default function ConnectPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </FadeInSection>
   )
 }

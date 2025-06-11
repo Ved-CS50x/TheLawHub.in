@@ -74,9 +74,9 @@ export default function HomePage() {
               </FadeInSection>
 
               <FadeInSection delay={900}>
-                <div className="mt-16 pt-8 border-t border-gray-600 max-w-2xl">
+                <div className="mt-16 pt-8 border-t border-gray-600 max-w-2xl mx-auto text-center">
                   <p className="text-white text-sm leading-relaxed">
-                    Advocating for the administration of NLUSA - National Law university Student Association.
+                    Advocating for the administration of NLUSA - National Law University Student Association
                   </p>
                   <p className="text-gray-400 text-xs mt-2">
                     <a

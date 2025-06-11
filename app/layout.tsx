@@ -2,14 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { FadeInSection } from "@/components/fade-in-section"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "The Law Hub - Premier Platform for Law Students",
-  description:
-    "Connect, learn, and excel with fellow NLU students across India. Access legal resources, discussions, and career opportunities.",
-  generator: "v0.dev",
+  title: "The Law Hub",
+  description: "The Go-To Hub for NLU Students",
 }
 
 export default function RootLayout({
@@ -20,7 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        <FadeInSection>
+          {children}
+        </FadeInSection>
       </body>
     </html>
   )
