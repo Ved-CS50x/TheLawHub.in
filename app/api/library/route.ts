@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server"
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 interface LibraryResource {
   id: string
@@ -154,55 +157,60 @@ export async function GET(request: Request) {
     const type = searchParams.get("type") || "all"
     const subject = searchParams.get("subject") || "all"
 
-    // Filter resources based on search query
-    let filteredResources = mockResources
+    // Build the where clause for filtering
+    const where: any = {}
 
     if (query) {
-      const searchTerms = query.toLowerCase().split(" ")
-      filteredResources = filteredResources.filter(resource => {
-        const searchableText = [
-          resource.title,
-          ...resource.authors,
-          ...resource.subjects,
-          ...resource.description
-        ].join(" ").toLowerCase()
-        
-        return searchTerms.every(term => searchableText.includes(term))
-      })
+      where.OR = [
+        { title: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { authors: { hasSome: [query] } },
+        { subjects: { hasSome: [query] } }
+      ]
     }
 
-    // Filter by type
     if (type !== "all") {
-      filteredResources = filteredResources.filter(resource => 
-        resource.type === type
-      )
+      where.type = { equals: type, mode: 'insensitive' }
     }
 
-    // Filter by subject
     if (subject !== "all") {
-      filteredResources = filteredResources.filter(resource => 
-        resource.subjects.some(s => s.toLowerCase().includes(subject.toLowerCase()))
-      )
+      where.subjects = { hasSome: [subject] }
     }
 
-    // Apply pagination
-    const startIndex = (page - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    const paginatedResources = filteredResources.slice(startIndex, endIndex)
+    // Get total count for pagination
+    const total = await prisma.libraryResource.count({ where })
 
-    return NextResponse.json({
-      resources: paginatedResources,
-      total: filteredResources.length,
-      page,
-      pageSize,
-      hasMore: endIndex < filteredResources.length
+    // Fetch paginated results
+    const resources = await prisma.libraryResource.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     })
 
-  } catch (error) {
-    console.error("Library API Error:", error)
+    return NextResponse.json({
+      resources,
+      total,
+      page,
+      pageSize,
+      hasMore: (page * pageSize) < total
+    })
+
+  } catch (error: any) {
+    console.error("Library API Error:", {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack
+    })
+    
     return NextResponse.json(
-      { error: "Failed to fetch library resources" },
+      { 
+        error: "Failed to fetch library resources",
+        details: error?.message || 'An unknown error occurred'
+      },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 } 

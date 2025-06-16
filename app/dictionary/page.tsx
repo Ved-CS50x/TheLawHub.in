@@ -2,95 +2,23 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, BookOpen, AlertCircle, ArrowRight, X } from "lucide-react"
 import { FadeInSection } from "@/components/fade-in-section"
+import { LEGAL_TERMS } from "./legal-terms/legal-terms-index"
 
-// Sample dictionary data - in a real app, this would come from an API or database
-const LEGAL_TERMS = [
-  {
-    term: "Habeas Corpus",
-    definition:
-      "A writ requiring a person under arrest to be brought before a judge or into court, especially to secure the person's release unless lawful grounds are shown for their detention.",
-    category: "Constitutional Law",
-    usage: "The attorney filed a writ of habeas corpus to challenge the legality of her client's detention.",
-  },
-  {
-    term: "Stare Decisis",
-    definition:
-      "A legal principle by which judges are obliged to respect the precedent established by prior decisions.",
-    category: "Jurisprudence",
-    usage: "The Supreme Court relied on stare decisis in upholding the previous ruling.",
-  },
-  {
-    term: "Mens Rea",
-    definition: "The intention or knowledge of wrongdoing that constitutes part of a crime.",
-    category: "Criminal Law",
-    usage: "The prosecution failed to prove mens rea, so the defendant was acquitted.",
-  },
-  {
-    term: "Actus Reus",
-    definition: "The action or conduct which is a constituent element of a crime.",
-    category: "Criminal Law",
-    usage: "The actus reus of theft is taking someone else's property without their consent.",
-  },
-  {
-    term: "Res Judicata",
-    definition:
-      "A matter that has been adjudicated by a competent court and therefore may not be pursued further by the same parties.",
-    category: "Civil Procedure",
-    usage: "The defendant argued that the case should be dismissed based on res judicata.",
-  },
-  {
-    term: "Prima Facie",
-    definition: "Based on the first impression; accepted as correct until proved otherwise.",
-    category: "Evidence Law",
-    usage: "The prosecution established a prima facie case against the defendant.",
-  },
-  {
-    term: "Obiter Dictum",
-    definition:
-      "A judge's expression of opinion uttered in court or in a written judgment, but not essential to the decision and therefore not legally binding as a precedent.",
-    category: "Jurisprudence",
-    usage: "The judge's comments about the legislation were merely obiter dictum.",
-  },
-  {
-    term: "Ratio Decidendi",
-    definition: "The point in a case that determines the judgment or the principle upon which the case was decided.",
-    category: "Jurisprudence",
-    usage: "Law students must learn to identify the ratio decidendi in court judgments.",
-  },
-  {
-    term: "Tort",
-    definition: "A civil wrong that causes someone else to suffer loss or harm, resulting in legal liability.",
-    category: "Tort Law",
-    usage: "The plaintiff filed a tort claim seeking damages for the injury.",
-  },
-  {
-    term: "Injunction",
-    definition: "A judicial order restraining a person from beginning or continuing an action.",
-    category: "Remedies",
-    usage: "The court granted an injunction preventing the company from using the disputed trademark.",
-  },
-  {
-    term: "Writ",
-    definition:
-      "A formal written order issued by a court commanding the party to whom it is addressed to perform or cease performing a specified act.",
-    category: "Constitutional Law",
-    usage: "The Supreme Court issued a writ directing the government to explain its actions.",
-  },
-  {
-    term: "Caveat Emptor",
-    definition:
-      "A principle that the buyer alone is responsible for checking the quality and suitability of goods before purchase.",
-    category: "Contract Law",
-    usage: "The doctrine of caveat emptor applied to the sale of the used car.",
-  },
-]
+// Define a type for legal terms
+export interface LegalTerm {
+  term: string;
+  definition: string;
+  link?: string;
+  category?: string;
+  usage?: string;
+}
 
 // Categories for filtering
 const CATEGORIES = [
@@ -105,11 +33,23 @@ const CATEGORIES = [
   "Remedies",
 ]
 
+// Helper to group terms by first letter
+function groupTermsByLetter(terms: LegalTerm[]) {
+  const groups: { [letter: string]: LegalTerm[] } = {}
+  terms.forEach(term => {
+    const letter = term.term[0].toUpperCase()
+    if (!groups[letter]) groups[letter] = []
+    groups[letter].push(term)
+  })
+  return groups
+}
+
 export default function DictionaryPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredTerms, setFilteredTerms] = useState(LEGAL_TERMS)
+  const [filteredTerms, setFilteredTerms] = useState<LegalTerm[]>(LEGAL_TERMS)
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [noResults, setNoResults] = useState(false)
+  const sectionRefs = useRef<{ [letter: string]: HTMLDivElement | null }>({})
 
   // Handle search input change with validation
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,13 +93,25 @@ export default function DictionaryPage() {
         (term) =>
           term.term.toLowerCase().includes(searchLower) ||
           term.definition.toLowerCase().includes(searchLower) ||
-          term.usage.toLowerCase().includes(searchLower),
+          term.usage?.toLowerCase().includes(searchLower) === true,
       )
     }
 
     setFilteredTerms(results)
     setNoResults(results.length === 0)
   }, [searchTerm, selectedCategory])
+
+  // Grouped terms for display
+  const groupedTerms = groupTermsByLetter(filteredTerms)
+  const allLetters = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
+
+  // Scroll to section
+  const scrollToLetter = (letter: string) => {
+    const ref = sectionRefs.current[letter]
+    if (ref) {
+      ref.scrollIntoView({ behavior: "smooth" })
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -247,6 +199,21 @@ export default function DictionaryPage() {
           </Card>
         </FadeInSection>
 
+        {/* A-Z Navigation Bar */}
+        <FadeInSection delay={100}>
+          <div className="flex flex-wrap gap-2 justify-center mb-8">
+            {allLetters.map(letter => (
+              <button
+                key={letter}
+                onClick={() => scrollToLetter(letter)}
+                className="px-3 py-1 rounded font-bold text-black dark:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gold-500 dark:hover:bg-gold-600 transition-colors"
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+        </FadeInSection>
+
         {/* Results Section */}
         <FadeInSection delay={400}>
           <div className="mb-4 flex justify-between items-center">
@@ -288,31 +255,60 @@ export default function DictionaryPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
-              {filteredTerms.map((term, index) => (
-                <Card
-                  key={term.term}
-                  className="border-2 border-black dark:border-gray-700 hover:border-gold-500 dark:hover:border-gold-400 transition-colors bg-white dark:bg-gray-800"
-                >
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-black dark:text-white text-xl">{term.term}</CardTitle>
-                        <Badge className="mt-2 bg-gold-500 dark:bg-gold-600 text-black">{term.category}</Badge>
-                      </div>
+            <div>
+              {allLetters.map(letter => (
+                groupedTerms[letter] && groupedTerms[letter].length > 0 && (
+                  <div
+                    key={letter}
+                    ref={el => {
+                      sectionRefs.current[letter] = el;
+                    }}
+                    className="mb-10"
+                  >
+                    <h2 className="text-2xl font-bold text-gold-600 dark:text-gold-400 mb-4 border-b border-gold-400 pb-2">{letter}</h2>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {groupedTerms[letter].map((term, index) => (
+                        <Card
+                          key={term.term}
+                          className="border-2 border-black dark:border-gray-700 hover:border-gold-500 dark:hover:border-gold-400 transition-colors bg-white dark:bg-gray-800"
+                        >
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-black dark:text-white text-xl">{term.term}</CardTitle>
+                                {term.link && (
+                                  <a
+                                    href={term.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 underline text-sm block mt-1"
+                                  >
+                                    View Full Definition
+                                  </a>
+                                )}
+                                {term.category && (
+                                  <Badge className="mt-2 bg-gold-500 dark:bg-gold-600 text-black">{term.category}</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Definition</h4>
+                              <p className="text-gray-800 dark:text-gray-200">{term.definition}</p>
+                            </div>
+                            {term.usage && (
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Usage Example</h4>
+                                <p className="text-gray-700 dark:text-gray-300 italic">"{term.usage}"</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Definition</h4>
-                      <p className="text-gray-800 dark:text-gray-200">{term.definition}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Usage Example</h4>
-                      <p className="text-gray-700 dark:text-gray-300 italic">"{term.usage}"</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                )
               ))}
             </div>
           )}

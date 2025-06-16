@@ -93,3 +93,26 @@ model Comment {
   author    User     @relation(fields: [authorId], references: [id])
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
+
+model LibraryResource {
+  id          String   @id @default(cuid())
+  oaiId       String   @unique // Original OAI identifier
+  title       String
+  authors     String[] // Array of author names
+  subjects    String[] // Array of subject terms
+  description String?  // Optional description
+  date        DateTime
+  type        String   // Resource type (article, thesis, etc.)
+  format      String[] // Available formats
+  url         String?  // Optional URL to the resource
+  language    String[] // Languages
+  rights      String[] // Rights information
+  setSpec     String[] // OAI set specifications
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([date])
+  @@index([title])
+  @@index([description])
+}

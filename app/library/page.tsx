@@ -41,6 +41,7 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<LibraryResponse | null>(null)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -89,6 +90,35 @@ export default function LibraryPage() {
     setPage(1)
   }
 
+  const handleLoadMore = async () => {
+    if (!data?.hasMore || isLoadingMore) return
+    
+    setIsLoadingMore(true)
+    try {
+      const params = new URLSearchParams({
+        page: (page + 1).toString(),
+        pageSize: "9",
+        q: searchQuery,
+        type: resourceType,
+        subject: subject
+      })
+
+      const response = await fetch(`/api/library?${params}`)
+      if (!response.ok) throw new Error("Failed to fetch more resources")
+      
+      const newData = await response.json()
+      setData(prev => prev ? {
+        ...newData,
+        resources: [...prev.resources, ...newData.resources]
+      } : newData)
+      setPage(p => p + 1)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load more resources")
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
   return (
     <FadeInSection>
       <div className="min-h-screen bg-gray-100 py-8">
@@ -99,12 +129,12 @@ export default function LibraryPage() {
               <div className="flex items-center justify-center mb-4">
                 <BookOpen className="w-12 h-12 text-gold-500 mr-3" />
                 <div className="text-center">
-                  <h1 className="text-3xl font-bold text-white">TheLawHub Library</h1>
+                  <h1 className="text-3xl font-bold text-white">NLSIU Repository</h1>
                   <p className="text-lg text-gold-500 font-medium">Access Academic Resources</p>
                 </div>
               </div>
               <p className="text-gold-500 max-w-2xl mx-auto">
-                Explore NLU's repository of academic papers, research articles, and legal resources.
+                Explore NLSIU's repository of academic papers, research articles, and legal resources.
               </p>
             </div>
           </FadeInSection>
@@ -131,6 +161,8 @@ export default function LibraryPage() {
                   <SelectItem value="thesis">Theses</SelectItem>
                   <SelectItem value="working_paper">Working Papers</SelectItem>
                   <SelectItem value="book">Books</SelectItem>
+                  <SelectItem value="conference">Conference Papers</SelectItem>
+                  <SelectItem value="report">Reports</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={subject} onValueChange={handleSubjectChange}>
@@ -143,6 +175,9 @@ export default function LibraryPage() {
                   <SelectItem value="criminal">Criminal Law</SelectItem>
                   <SelectItem value="commercial">Commercial Law</SelectItem>
                   <SelectItem value="international">International Law</SelectItem>
+                  <SelectItem value="environmental">Environmental Law</SelectItem>
+                  <SelectItem value="human rights">Human Rights</SelectItem>
+                  <SelectItem value="intellectual property">Intellectual Property</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -184,12 +219,14 @@ export default function LibraryPage() {
                           </CardTitle>
                           <CardDescription className="flex items-center text-sm text-gray-500">
                             <User className="w-4 h-4 mr-1" />
-                            {resource.authors.join(", ")}
+                            {resource.authors.length > 0 
+                              ? resource.authors.join(", ")
+                              : "Unknown Author"}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                            {resource.description[0]}
+                            {resource.description[0] || "No description available"}
                           </p>
                           <div className="flex flex-wrap gap-2 mb-4">
                             {resource.subjects.slice(0, 3).map((subject, i) => (
@@ -211,39 +248,48 @@ export default function LibraryPage() {
                           </div>
                         </CardContent>
                         <CardFooter>
-                          <Button
-                            asChild
-                            className="w-full bg-gold-500 text-black hover:bg-gold-600"
-                          >
-                            <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                          {resource.url ? (
+                            <Button
+                              asChild
+                              className="w-full bg-gold-500 text-black hover:bg-gold-600"
+                            >
+                              <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                View Resource
+                              </a>
+                            </Button>
+                          ) : (
+                            <Button
+                              disabled
+                              className="w-full bg-gray-200 text-gray-500 cursor-not-allowed"
+                            >
                               <ExternalLink className="w-4 h-4 mr-2" />
-                              View Resource
-                            </a>
-                          </Button>
+                              Resource Unavailable
+                            </Button>
+                          )}
                         </CardFooter>
                       </Card>
                     </FadeInSection>
                   ))}
                 </div>
 
-                {/* Pagination */}
-                {data && data.total > 0 && (
+                {/* Load More Button */}
+                {data?.hasMore && (
                   <div className="mt-8 flex justify-center">
                     <Button
                       variant="outline"
-                      className="border-2 border-black mr-2"
-                      disabled={page === 1}
-                      onClick={() => setPage(p => p - 1)}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
                       className="border-2 border-black"
-                      disabled={!data.hasMore}
-                      onClick={() => setPage(p => p + 1)}
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMore}
                     >
-                      Next
+                      {isLoadingMore ? (
+                        <>
+                          <span className="animate-spin mr-2">⟳</span>
+                          Loading...
+                        </>
+                      ) : (
+                        "Load More"
+                      )}
                     </Button>
                   </div>
                 )}
