@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { z } from "zod";
 
@@ -22,38 +22,41 @@ export async function POST(
     const body = await req.json();
     const { content } = commentSchema.parse(body);
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
+    // Get user
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, name, image')
+      .eq('email', session.user.email)
+      .single();
+    if (userError || !user) {
       return new NextResponse("User not found", { status: 404 });
     }
 
-    const post = await prisma.post.findUnique({
-      where: { id: params.postId },
-    });
-
-    if (!post) {
+    // Check post exists
+    const { data: post, error: postError } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('id', params.postId)
+      .single();
+    if (postError || !post) {
       return new NextResponse("Post not found", { status: 404 });
     }
 
-    const comment = await prisma.comment.create({
-      data: {
-        content,
-        authorId: user.id,
-        postId: params.postId,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
+    // Insert comment
+    const { data: comment, error: commentError } = await supabase
+      .from('comments')
+      .insert([
+        {
+          content,
+          author_id: user.id,
+          post_id: params.postId,
         },
-      },
-    });
+      ])
+      .select('*, author:users(id, name, image)')
+      .single();
+    if (commentError) {
+      return new NextResponse("Failed to create comment", { status: 500 });
+    }
 
     return NextResponse.json(comment);
   } catch (error) {
@@ -72,39 +75,30 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const skip = (page - 1) * limit;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
-    const [comments, total] = await Promise.all([
-      prisma.comment.findMany({
-        where: {
-          postId: params.postId,
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.comment.count({
-        where: {
-          postId: params.postId,
-        },
-      }),
-    ]);
+    // Fetch comments with author info
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select('*, author:users(id, name, image)')
+      .eq('post_id', params.postId)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (error) {
+      return new NextResponse("Failed to fetch comments", { status: 500 });
+    }
+
+    // Get total count
+    const { count } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', params.postId);
 
     return NextResponse.json({
       comments,
-      total,
-      pages: Math.ceil(total / limit),
+      total: count || 0,
+      pages: Math.ceil((count || 0) / limit),
     });
   } catch (error) {
     return new NextResponse("Internal error", { status: 500 });

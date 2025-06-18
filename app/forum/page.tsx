@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,7 @@ import { FadeInSection } from "@/components/fade-in-section"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { supabase } from "@/lib/supabaseClient"
 
 interface Discussion {
   id: string
@@ -46,58 +47,27 @@ export default function ForumPage() {
     content: "",
     tags: []
   })
+  const [discussions, setDiscussions] = useState<Discussion[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock data for discussions
-  const discussions: Discussion[] = [
-    {
-      id: "1",
-      title: "New Criminal Procedure Code Amendments",
-      category: "Criminal Law",
-      description: "Discussion about recent changes in CrPC and their implications for criminal justice...",
-      author: "Adv. Rahul Sharma",
-      date: "2 hours ago",
-      participants: 45,
-      tags: ["Criminal Law", "CrPC", "Amendments"],
-      status: "hot",
-      startDate: "2024-03-15",
-      content: "The recent amendments to the CrPC have significant implications...",
-      replies: 23,
-      views: 156,
-      lastUpdated: "2 hours ago"
-    },
-    {
-      id: "2",
-      title: "Internship Opportunities at Top Firms",
-      category: "Careers",
-      description: "Sharing internship openings and experiences from leading law firms...",
-      author: "Prof. Priya Singh",
-      date: "4 hours ago",
-      participants: 78,
-      tags: ["Internships", "Career", "Law Firms"],
-      status: "active",
-      startDate: "2024-03-14",
-      content: "Several top law firms have announced their summer internship programs...",
-      replies: 45,
-      views: 289,
-      lastUpdated: "4 hours ago"
-    },
-    {
-      id: "3",
-      title: "Constitutional Law Case Analysis",
-      category: "Constitutional Law",
-      description: "Analysis of recent Supreme Court judgments on fundamental rights...",
-      author: "Dr. Amit Kumar",
-      date: "1 day ago",
-      participants: 32,
-      tags: ["Constitutional Law", "Supreme Court", "Fundamental Rights"],
-      status: "active",
-      startDate: "2024-03-13",
-      content: "The recent judgment on Article 21 has far-reaching implications...",
-      replies: 18,
-      views: 124,
-      lastUpdated: "1 day ago"
+  useEffect(() => {
+    const fetchDiscussions = async () => {
+      setLoading(true)
+      setError(null)
+      let query = supabase
+        .from('posts')
+        .select('*')
+      if (category !== "all") {
+        query = query.eq('category', category)
+      }
+      const { data, error } = await query.order('createdAt', { ascending: false })
+      if (error) setError(error.message)
+      else setDiscussions(data as Discussion[])
+      setLoading(false)
     }
-  ]
+    fetchDiscussions()
+  }, [category])
 
   // Filter and sort discussions
   const filteredDiscussions = discussions
@@ -114,15 +84,34 @@ export default function ForumPage() {
       return b.participants - a.participants
     })
 
-  const handleCreateDiscussion = () => {
-    // In a real app, this would send the data to an API
-    console.log("Creating new discussion:", newDiscussion)
+  const handleCreateDiscussion = async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error } = await supabase
+      .from('posts')
+      .insert([
+        {
+          title: newDiscussion.title,
+          category: newDiscussion.category,
+          content: newDiscussion.content,
+          tags: newDiscussion.tags,
+          // Add other fields as needed
+        }
+      ])
+    if (error) setError(error.message)
     setNewDiscussion({
       title: "",
       category: "",
       content: "",
       tags: []
     })
+    // Refresh discussions
+    const { data: updated, error: fetchError } = await supabase
+      .from('posts')
+      .select('*')
+      .order('createdAt', { ascending: false })
+    if (!fetchError) setDiscussions(updated as Discussion[])
+    setLoading(false)
   }
 
   return (

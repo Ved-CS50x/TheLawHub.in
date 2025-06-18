@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
+import { supabase } from "@/lib/supabaseClient"
 
 interface LibraryResource {
   id: string
@@ -148,69 +146,42 @@ const mockResources: LibraryResource[] = [
   }
 ]
 
-export async function GET(request: Request) {
+export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get("page") || "1")
-    const pageSize = parseInt(searchParams.get("pageSize") || "10")
-    const query = searchParams.get("q") || ""
+    const pageSize = parseInt(searchParams.get("pageSize") || "9")
+    const q = searchParams.get("q") || ""
     const type = searchParams.get("type") || "all"
     const subject = searchParams.get("subject") || "all"
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
 
-    // Build the where clause for filtering
-    const where: any = {}
-
-    if (query) {
-      where.OR = [
-        { title: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { authors: { hasSome: [query] } },
-        { subjects: { hasSome: [query] } }
-      ]
+    let query = supabase
+      .from('library_resources')
+      .select('*', { count: 'exact' })
+      .range(from, to)
+    if (q) {
+      query = query.ilike('title', `%${q}%`)
     }
-
-    if (type !== "all") {
-      where.type = { equals: type, mode: 'insensitive' }
+    if (type !== 'all') {
+      query = query.eq('type', type)
     }
-
-    if (subject !== "all") {
-      where.subjects = { hasSome: [subject] }
+    if (subject !== 'all') {
+      query = query.contains('subjects', [subject])
     }
-
-    // Get total count for pagination
-    const total = await prisma.libraryResource.count({ where })
-
-    // Fetch paginated results
-    const resources = await prisma.libraryResource.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    })
-
+    const { data, error, count } = await query
+    if (error) {
+      return new NextResponse("Failed to fetch resources", { status: 500 })
+    }
     return NextResponse.json({
-      resources,
-      total,
+      resources: data || [],
+      total: count || 0,
       page,
       pageSize,
-      hasMore: (page * pageSize) < total
+      hasMore: (data?.length || 0) === pageSize
     })
-
-  } catch (error: any) {
-    console.error("Library API Error:", {
-      name: error?.name,
-      message: error?.message,
-      stack: error?.stack
-    })
-    
-    return NextResponse.json(
-      { 
-        error: "Failed to fetch library resources",
-        details: error?.message || 'An unknown error occurred'
-      },
-      { status: 500 }
-    )
-  } finally {
-    await prisma.$disconnect()
+  } catch (error) {
+    return new NextResponse("Internal error", { status: 500 })
   }
 } 

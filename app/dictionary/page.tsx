@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, BookOpen, AlertCircle, ArrowRight, X } from "lucide-react"
 import { FadeInSection } from "@/components/fade-in-section"
 import { LEGAL_TERMS } from "./legal-terms/legal-terms-index"
+import { supabase } from "@/lib/supabaseClient"
 
 // Define a type for legal terms
 export interface LegalTerm {
@@ -46,10 +47,12 @@ function groupTermsByLetter(terms: LegalTerm[]) {
 
 export default function DictionaryPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredTerms, setFilteredTerms] = useState<LegalTerm[]>(LEGAL_TERMS)
+  const [filteredTerms, setFilteredTerms] = useState<LegalTerm[]>([])
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [noResults, setNoResults] = useState(false)
   const sectionRefs = useRef<{ [letter: string]: HTMLDivElement | null }>({})
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Handle search input change with validation
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,26 +82,25 @@ export default function DictionaryPage() {
 
   // Filter terms based on search term and category
   useEffect(() => {
-    let results = LEGAL_TERMS
-
-    // Filter by category if not "All"
-    if (selectedCategory !== "All") {
-      results = results.filter((term) => term.category === selectedCategory)
+    const fetchTerms = async () => {
+      setLoading(true)
+      setError(null)
+      let query = supabase
+        .from('dictionary')
+        .select('*')
+      if (selectedCategory !== "All") {
+        query = query.eq('category', selectedCategory)
+      }
+      if (searchTerm.trim()) {
+        query = query.or(`term.ilike.%${searchTerm}%,definition.ilike.%${searchTerm}%`)
+      }
+      const { data, error } = await query
+      if (error) setError(error.message)
+      setFilteredTerms(data || [])
+      setNoResults((data?.length || 0) === 0)
+      setLoading(false)
     }
-
-    // Filter by search term if present
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase()
-      results = results.filter(
-        (term) =>
-          term.term.toLowerCase().includes(searchLower) ||
-          term.definition.toLowerCase().includes(searchLower) ||
-          term.usage?.toLowerCase().includes(searchLower) === true,
-      )
-    }
-
-    setFilteredTerms(results)
-    setNoResults(results.length === 0)
+    fetchTerms()
   }, [searchTerm, selectedCategory])
 
   // Grouped terms for display

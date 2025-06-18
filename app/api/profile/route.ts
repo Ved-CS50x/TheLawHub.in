@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { z } from "zod";
 
@@ -20,14 +20,13 @@ export async function GET(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        profile: true,
-      },
-    });
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name, email, image, profile(*)')
+      .eq('email', session.user.email)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return new NextResponse("User not found", { status: 404 });
     }
 
@@ -56,25 +55,32 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const validatedData = profileSchema.parse(body);
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { profile: true },
-    });
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
 
-    if (!user) {
+    if (userError || !user) {
       return new NextResponse("User not found", { status: 404 });
     }
 
-    const profile = await prisma.profile.upsert({
-      where: {
-        userId: user.id,
-      },
-      update: validatedData,
-      create: {
-        ...validatedData,
-        userId: user.id,
-      },
-    });
+    // Upsert profile
+    const { interests, ...rest } = validatedData;
+    const upsertData = {
+      ...rest,
+      userId: user.id,
+      interests: interests ? JSON.stringify(interests) : null,
+    }
+    const { data: profile, error: profileError } = await supabase
+      .from('profile')
+      .upsert([upsertData], { onConflict: ['userId'] })
+      .select()
+      .single();
+
+    if (profileError) {
+      return new NextResponse("Profile update error", { status: 500 });
+    }
 
     return NextResponse.json(profile);
   } catch (error) {

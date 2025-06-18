@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { XMLParser } from 'fast-xml-parser';
 
-const prisma = new PrismaClient();
 const NLSIU_OAI_ENDPOINT = 'https://repository.nls.ac.in/cgi/oai2';
 
 interface OAIRecord {
@@ -101,36 +99,36 @@ async function harvestAndStore() {
           const metadata = record.metadata['oai_dc:dc'];
           
           // Transform and store the record
-          await prisma.libraryResource.upsert({
-            where: { oaiId: record.header.identifier },
-            create: {
-              oaiId: record.header.identifier,
-              title: metadata['dc:title']?.[0] || 'Untitled',
-              authors: metadata['dc:creator'] || [],
-              subjects: metadata['dc:subject'] || [],
-              description: metadata['dc:description']?.[0] || null,
-              date: new Date(metadata['dc:date']?.[0] || record.header.datestamp),
-              type: metadata['dc:type']?.[0] || 'unknown',
-              format: metadata['dc:format'] || [],
-              url: metadata['dc:identifier']?.find(id => id.startsWith('http')) || null,
-              language: metadata['dc:language'] || ['English'],
-              rights: metadata['dc:rights'] || [],
-              setSpec: record.header.setSpec || [],
-            },
-            update: {
-              title: metadata['dc:title']?.[0] || 'Untitled',
-              authors: metadata['dc:creator'] || [],
-              subjects: metadata['dc:subject'] || [],
-              description: metadata['dc:description']?.[0] || null,
-              date: new Date(metadata['dc:date']?.[0] || record.header.datestamp),
-              type: metadata['dc:type']?.[0] || 'unknown',
-              format: metadata['dc:format'] || [],
-              url: metadata['dc:identifier']?.find(id => id.startsWith('http')) || null,
-              language: metadata['dc:language'] || ['English'],
-              rights: metadata['dc:rights'] || [],
-              setSpec: record.header.setSpec || [],
-            },
-          });
+          // await prisma.libraryResource.upsert({
+          //   where: { oaiId: record.header.identifier },
+          //   create: {
+          //     oaiId: record.header.identifier,
+          //     title: metadata['dc:title']?.[0] || 'Untitled',
+          //     authors: metadata['dc:creator'] || [],
+          //     subjects: metadata['dc:subject'] || [],
+          //     description: metadata['dc:description']?.[0] || null,
+          //     date: new Date(metadata['dc:date']?.[0] || record.header.datestamp),
+          //     type: metadata['dc:type']?.[0] || 'unknown',
+          //     format: metadata['dc:format'] || [],
+          //     url: metadata['dc:identifier']?.find(id => id.startsWith('http')) || null,
+          //     language: metadata['dc:language'] || ['English'],
+          //     rights: metadata['dc:rights'] || [],
+          //     setSpec: record.header.setSpec || [],
+          //   },
+          //   update: {
+          //     title: metadata['dc:title']?.[0] || 'Untitled',
+          //     authors: metadata['dc:creator'] || [],
+          //     subjects: metadata['dc:subject'] || [],
+          //     description: metadata['dc:description']?.[0] || null,
+          //     date: new Date(metadata['dc:date']?.[0] || record.header.datestamp),
+          //     type: metadata['dc:type']?.[0] || 'unknown',
+          //     format: metadata['dc:format'] || [],
+          //     url: metadata['dc:identifier']?.find(id => id.startsWith('http')) || null,
+          //     language: metadata['dc:language'] || ['English'],
+          //     rights: metadata['dc:rights'] || [],
+          //     setSpec: record.header.setSpec || [],
+          //   },
+          // });
           
           totalStored++;
         } catch (error) {
@@ -156,8 +154,6 @@ async function harvestAndStore() {
   } catch (error) {
     console.error('Error during harvest:', error);
     throw error;
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

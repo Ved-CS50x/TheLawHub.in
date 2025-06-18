@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, BookOpen, Download, Calendar, User, Tag, ExternalLink } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { supabase } from "@/lib/supabaseClient"
 
 interface LibraryResource {
   id: string
@@ -45,32 +46,32 @@ export default function LibraryPage() {
 
   useEffect(() => {
     const fetchResources = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const params = new URLSearchParams({
-          page: page.toString(),
-          pageSize: "9",
-          q: searchQuery,
-          type: resourceType,
-          subject: subject
-        })
-
-        const response = await fetch(`/api/library?${params}`)
-        if (!response.ok) {
-          throw new Error("Failed to fetch resources")
-        }
-
-        const result = await response.json()
-        setData(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
-      } finally {
-        setLoading(false)
+      setLoading(true)
+      setError(null)
+      let query = supabase
+        .from('library_resources')
+        .select('*')
+        .range((page - 1) * 9, page * 9 - 1)
+      if (searchQuery) {
+        query = query.ilike('title', `%${searchQuery}%`)
       }
+      if (resourceType !== 'all') {
+        query = query.eq('type', resourceType)
+      }
+      if (subject !== 'all') {
+        query = query.contains('subjects', [subject])
+      }
+      const { data, error, count } = await query
+      if (error) setError(error.message)
+      else setData({
+        resources: data || [],
+        total: count || 0,
+        page,
+        pageSize: 9,
+        hasMore: (data?.length || 0) === 9
+      })
+      setLoading(false)
     }
-
     const debounceTimer = setTimeout(fetchResources, 300)
     return () => clearTimeout(debounceTimer)
   }, [searchQuery, resourceType, subject, page])
