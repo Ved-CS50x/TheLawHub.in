@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, BookOpen, Download, Calendar, User, Tag, ExternalLink } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { supabase } from "@/lib/supabaseClient"
+import { useRouter } from "next/navigation"
 
 interface LibraryResource {
   id: string
@@ -43,6 +44,8 @@ export default function LibraryPage() {
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<LibraryResponse | null>(null)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [subscribed, setSubscribed] = useState<boolean | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -75,6 +78,19 @@ export default function LibraryPage() {
     const debounceTimer = setTimeout(fetchResources, 300)
     return () => clearTimeout(debounceTimer)
   }, [searchQuery, resourceType, subject, page])
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const res = await fetch("/api/subscription/status")
+        const json = await res.json()
+        setSubscribed(json.subscribed)
+      } catch {
+        setSubscribed(false)
+      }
+    }
+    checkSubscription()
+  }, [])
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
@@ -198,111 +214,74 @@ export default function LibraryPage() {
                       <Skeleton className="h-6 w-3/4" />
                       <Skeleton className="h-4 w-1/2 mt-2" />
                     </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                    <CardFooter>
-                      <Skeleton className="h-8 w-full" />
-                    </CardFooter>
                   </Card>
                 ))}
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {data?.resources.map((resource, index) => (
-                    <FadeInSection key={resource.id} delay={400 + index * 100}>
-                      <Card className="border-2 border-black bg-white hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <CardTitle className="text-lg font-bold text-black line-clamp-2">
-                            {resource.title}
-                          </CardTitle>
-                          <CardDescription className="flex items-center text-sm text-gray-500">
-                            <User className="w-4 h-4 mr-1" />
-                            {resource.authors.length > 0 
-                              ? resource.authors.join(", ")
-                              : "Unknown Author"}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                            {resource.description[0] || "No description available"}
-                          </p>
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {resource.subjects.slice(0, 3).map((subject, i) => (
-                              <Badge key={i} variant="secondary" className="bg-gold-100 text-gold-800">
-                                <Tag className="w-3 h-3 mr-1" />
-                                {subject}
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex items-center justify-between text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {new Date(resource.date).toLocaleDateString()}
-                            </div>
-                            <div className="flex items-center">
-                              <BookOpen className="w-4 h-4 mr-1" />
-                              {resource.type}
-                            </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter>
-                          {resource.url ? (
-                            <Button
-                              asChild
-                              className="w-full bg-gold-500 text-black hover:bg-gold-600"
-                            >
-                              <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                View Resource
-                              </a>
-                            </Button>
-                          ) : (
-                            <Button
-                              disabled
-                              className="w-full bg-gray-200 text-gray-500 cursor-not-allowed"
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Resource Unavailable
-                            </Button>
-                          )}
-                        </CardFooter>
-                      </Card>
-                    </FadeInSection>
+                  {(subscribed === false && data?.resources ? data.resources.slice(0, 2) : data?.resources || []).map(resource => (
+                    <Card key={resource.id} className="border-2 border-black bg-white">
+                      <CardHeader>
+                        <CardTitle>{resource.title}</CardTitle>
+                        <CardDescription>{resource.authors.join(", ")}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mb-2 text-sm text-gray-700">{resource.description[0]}</div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {resource.subjects.map((s, i) => <Badge key={i}>{s}</Badge>)}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Calendar className="w-4 h-4" /> {resource.date}
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                          <ExternalLink className="w-4 h-4" /> View Resource
+                        </a>
+                      </CardFooter>
+                    </Card>
                   ))}
                 </div>
-
-                {/* Load More Button */}
-                {data?.hasMore && (
-                  <div className="mt-8 flex justify-center">
-                    <Button
-                      variant="outline"
-                      className="border-2 border-black"
-                      onClick={handleLoadMore}
-                      disabled={isLoadingMore}
-                    >
-                      {isLoadingMore ? (
-                        <>
-                          <span className="animate-spin mr-2">⟳</span>
-                          Loading...
-                        </>
-                      ) : (
-                        "Load More"
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {data && data.total === 0 && (
-                  <div className="text-center text-gray-500 py-8">
-                    No resources found matching your criteria.
+                {subscribed === false && (
+                  <div className="mt-8 flex flex-col items-center">
+                    <div className="bg-white/70 border border-black/10 rounded-xl px-6 py-4 shadow-md backdrop-blur-sm text-center max-w-xl mx-auto">
+                      <div className="text-lg font-semibold text-black/80 mb-2">Subscribe to unlock the full library</div>
+                      <div className="text-sm text-black/60 mb-4">Get unlimited access to all resources by subscribing. Preview is limited to 2 documents.</div>
+                      <Button className="bg-gold-500 hover:bg-gold-600 text-black font-bold rounded-full px-6 py-2 shadow-lg transition-all" onClick={() => router.push("/subscribe")}>Buy Subscription</Button>
+                    </div>
                   </div>
                 )}
               </>
             )}
           </FadeInSection>
+
+          {/* Load More Button */}
+          {data?.hasMore && (
+            <div className="mt-8 flex justify-center">
+              <Button
+                variant="outline"
+                className="border-2 border-black"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? (
+                  <>
+                    <span className="animate-spin mr-2">⟳</span>
+                    Loading...
+                  </>
+                ) : (
+                  "Load More"
+                )}
+              </Button>
+            </div>
+          )}
+
+          {data && data.total === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              No resources found matching your criteria.
+            </div>
+          )}
         </div>
       </div>
     </FadeInSection>
