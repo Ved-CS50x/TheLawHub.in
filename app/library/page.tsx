@@ -146,12 +146,12 @@ export default function LibraryPage() {
               <div className="flex items-center justify-center mb-4">
                 <BookOpen className="w-12 h-12 text-gold-500 mr-3" />
                 <div className="text-center">
-                  <h1 className="text-3xl font-bold text-white">NLSIU Repository</h1>
-                  <p className="text-lg text-gold-500 font-medium">Access Academic Resources</p>
+                  <h1 className="text-3xl font-bold text-white">TheLawHub Repository</h1>
+                  <p className="text-lg text-gold-500 font-medium">Access Academic Resources tailored for Students</p>
                 </div>
               </div>
               <p className="text-gold-500 max-w-2xl mx-auto">
-                Explore NLSIU's repository of academic papers, research articles, and legal resources.
+                Explore TheLawHub's repository of academic papers, research articles, and legal resources that is actually useful for Papers and Exams.
               </p>
             </div>
           </FadeInSection>
@@ -220,7 +220,7 @@ export default function LibraryPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(subscribed === false && data?.resources ? data.resources.slice(0, 2) : data?.resources || []).map(resource => (
+                  {(subscribed === false && data?.resources ? data.resources.slice(0, 5) : data?.resources || []).map(resource => (
                     <Card key={resource.id} className="border-2 border-black bg-white">
                       <CardHeader>
                         <CardTitle>{resource.title}</CardTitle>
@@ -247,7 +247,7 @@ export default function LibraryPage() {
                   <div className="mt-8 flex flex-col items-center">
                     <div className="bg-white/70 border border-black/10 rounded-xl px-6 py-4 shadow-md backdrop-blur-sm text-center max-w-xl mx-auto">
                       <div className="text-lg font-semibold text-black/80 mb-2">Subscribe to unlock the full library</div>
-                      <div className="text-sm text-black/60 mb-4">Get unlimited access to all resources by subscribing. Preview is limited to 2 documents.</div>
+                      <div className="text-sm text-black/60 mb-4">Get unlimited access to all resources by subscribing. Preview is limited to 5 documents monthly.</div>
                       <Button className="bg-gold-500 hover:bg-gold-600 text-black font-bold rounded-full px-6 py-2 shadow-lg transition-all" onClick={() => router.push("/subscribe")}>Buy Subscription</Button>
                     </div>
                   </div>

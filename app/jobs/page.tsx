@@ -37,7 +37,7 @@ export default function JobsComingSoonPage() {
                 <span className="text-lg font-medium">Coming Soon</span>
               </div>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                We're building an amazing platform to connect NLU students with top law firms, corporate legal
+                We're trying to build an amazing platform to connect NLU students with top law firms, corporate legal
                 departments, and internship opportunities across India.
               </p>
             </CardHeader>
@@ -98,7 +98,7 @@ export default function JobsComingSoonPage() {
               <div className="text-center">
                 <h3 className="text-xl font-bold text-black mb-4">Expected Launch</h3>
                 <div className="inline-flex items-center bg-gold-500 text-black px-6 py-3 rounded-full font-semibold">
-                  Q2 2025
+                  Q4 2025
                 </div>
                 <p className="text-gray-600 mt-4">
                   We're working hard to bring you the best job and internship platform for law students.

@@ -65,7 +65,7 @@ export default function SubscribePage() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center py-12 px-4">
       <h1 className="text-3xl font-bold mb-2 text-black">Choose Your Subscription</h1>
-      <p className="text-lg text-gold-600 mb-8">Unlock the full library with a plan that suits you</p>
+      <p className="text-lg text-gold-600 mb-8">Unlock the full library and additional perks with a plan that suits you</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
         {plans.map((plan) => (
           <Card
