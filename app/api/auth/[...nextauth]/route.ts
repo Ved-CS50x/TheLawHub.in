@@ -14,13 +14,13 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        // Fetch user from Supabase
         const { data: user, error } = await supabase
           .from('users')
-          .select('id, email, password, name, image')
+          .select('id, email, password, name, image, approved, role')
           .eq('email', credentials.email)
           .single();
         if (error || !user) return null;
+        if (!user.approved) throw new Error("Your account is pending approval.");
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
         return {
@@ -28,6 +28,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
+          role: user.role,
         };
       },
     }),
@@ -43,13 +44,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (session.user && token) {
-        session.user.id = token.sub;
+        (session.user as any).id = (token as any).sub;
+        (session.user as any).role = (token as any).role;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        (token as any).id = (user as any).id;
+        (token as any).role = (user as any).role;
       }
       return token;
     },

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -39,68 +39,49 @@ import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { FadeInSection } from "@/components/fade-in-section"
+import { useSession } from "next-auth/react"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function ConnectPage() {
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.sub || (session?.user as any)?.id;
+
   const [newPost, setNewPost] = useState("")
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [anonymousPostsToday, setAnonymousPostsToday] = useState(0)
-  const [editingPost, setEditingPost] = useState<number | null>(null)
+  const [editingPost, setEditingPost] = useState<string | null>(null)
   const [editContent, setEditContent] = useState("")
   const [editImage, setEditImage] = useState<File | null>(null)
   const [reportDialogOpen, setReportDialogOpen] = useState(false)
   const [reportReason, setReportReason] = useState("")
-  const [reportingPostId, setReportingPostId] = useState<number | null>(null)
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null)
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deletingPostId, setDeletingPostId] = useState<number | null>(null)
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
 
-  // Mock data for posts
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      author: "Priya Sharma",
-      university: "NALSAR Hyderabad",
-      avatar: "/placeholder.svg?height=40&width=40",
-      time: "2 hours ago",
-      content:
-        "Just finished my Constitutional Law assignment! The recent Supreme Court judgment on privacy rights is fascinating. Anyone else working on similar topics?",
-      image: null,
-      likes: 12,
-      comments: 5,
-      isLiked: false,
-      isAnonymous: false,
-    },
-    {
-      id: 2,
-      author: "Rahul Kumar",
-      university: "NLSIU Bangalore",
-      avatar: "/placeholder.svg?height=40&width=40",
-      time: "4 hours ago",
-      content:
-        "Moot court practice session today! Our team is preparing for the national competition. Feeling nervous but excited 🏛️",
-      image: "/placeholder.svg?height=300&width=500",
-      likes: 24,
-      comments: 8,
-      isLiked: true,
-      isAnonymous: false,
-    },
-    {
-      id: 3,
-      author: "Anonymous",
-      university: "Hidden",
-      avatar: null,
-      time: "6 hours ago",
-      content:
-        "Study group forming for Criminal Law! We meet every Tuesday and Thursday at the library. DM me if interested 📚",
-      image: null,
-      likes: 18,
-      comments: 12,
-      isLiked: false,
-      isAnonymous: true,
-    },
-  ])
+  // Real posts data
+  const [posts, setPosts] = useState<any[]>([])
+  const [loadingPosts, setLoadingPosts] = useState(true)
 
+  // Comments state
+  const [comments, setComments] = useState<{ [postId: string]: any[] }>({})
+  const [commentInputs, setCommentInputs] = useState<{ [postId: string]: string }>({})
+
+  // Fetch posts on mount
+  useEffect(() => {
+    fetchPosts()
+  }, [])
+
+  const fetchPosts = async () => {
+    setLoadingPosts(true)
+    const res = await fetch("/api/connect/posts")
+    const data = await res.json()
+    setPosts(data)
+    setLoadingPosts(false)
+  }
+
+  // Handle image upload (for post creation/edit)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -112,123 +93,178 @@ export default function ConnectPage() {
     }
   }
 
-  const handlePost = () => {
-    if (newPost.trim() || selectedImage) {
-      // Check anonymous post limit
-      if (isAnonymous && anonymousPostsToday >= 2) {
-        toast({
-          title: "Anonymous Post Limit Reached",
-          description: "You can only post anonymously twice per day.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Create new post
-      const newPostObj = {
-        id: Date.now(),
-        author: isAnonymous ? "Anonymous" : "Arjun Kumar",
-        university: isAnonymous ? "Hidden" : "NLSIU Bangalore",
-        avatar: isAnonymous ? null : "/placeholder.svg?height=40&width=40",
-        time: "Just now",
-        content: newPost,
-        image: selectedImage ? URL.createObjectURL(selectedImage) : null,
-        likes: 0,
-        comments: 0,
-        isLiked: false,
-        isAnonymous: isAnonymous,
-      }
-
-      setPosts([newPostObj, ...posts])
-      setNewPost("")
-      setSelectedImage(null)
-
-      // Update anonymous post count if applicable
-      if (isAnonymous) {
-        setAnonymousPostsToday((prev) => prev + 1)
-        setIsAnonymous(false) // Reset anonymous toggle
-      }
-
+  // Create a new post
+  const handlePost = async () => {
+    if (!newPost.trim() && !selectedImage) return
+    if (isAnonymous && anonymousPostsToday >= 2) {
       toast({
-        title: "Post Created",
-        description: "Your post has been published successfully.",
+        title: "Anonymous Post Limit Reached",
+        description: "You can only post anonymously twice per day.",
+        variant: "destructive",
       })
+      return
     }
+    let image_url = null
+    if (selectedImage && userId) {
+      const fileExt = selectedImage.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(fileName, selectedImage);
+      if (uploadError) {
+        toast({ title: "Image Upload Failed", description: uploadError.message, variant: "destructive" });
+        return;
+      }
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('post-images')
+        .getPublicUrl(fileName);
+      image_url = publicUrlData.publicUrl;
+    }
+    const res = await fetch("/api/connect/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        author_id: userId,
+        content: newPost,
+        image_url,
+        is_anonymous: isAnonymous,
+      }),
+    })
+    const post = await res.json()
+    setPosts([post, ...posts])
+    setNewPost("")
+    setSelectedImage(null)
+    if (isAnonymous) {
+      setAnonymousPostsToday((prev) => prev + 1)
+      setIsAnonymous(false)
+    }
+    toast({ title: "Post Created", description: "Your post has been published successfully." })
   }
 
-  const handleEditPost = (postId: number) => {
+  // Edit a post
+  const handleEditPost = (postId: string) => {
     const post = posts.find((p) => p.id === postId)
     if (post) {
       setEditingPost(postId)
       setEditContent(post.content)
-      setEditImage(post.image ? null : null) // In a real app, you'd handle the image properly
-    }
-  }
-
-  const saveEditedPost = () => {
-    if (editingPost !== null) {
-      setPosts(
-        posts.map((post) => {
-          if (post.id === editingPost) {
-            return {
-              ...post,
-              content: editContent,
-              image: editImage ? URL.createObjectURL(editImage) : post.image,
-              time: post.time + " (edited)",
-            }
-          }
-          return post
-        }),
-      )
-
-      setEditingPost(null)
-      setEditContent("")
       setEditImage(null)
-
-      toast({
-        title: "Post Updated",
-        description: "Your post has been updated successfully.",
-      })
     }
   }
-
+  const saveEditedPost = async () => {
+    if (!editingPost) return
+    let image_url = null
+    if (editImage && userId) {
+      const fileExt = editImage.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(fileName, editImage);
+      if (uploadError) {
+        toast({ title: "Image Upload Failed", description: uploadError.message, variant: "destructive" });
+        return;
+      }
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('post-images')
+        .getPublicUrl(fileName);
+      image_url = publicUrlData.publicUrl;
+    }
+    const res = await fetch("/api/connect/posts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editingPost, content: editContent, image_url }),
+    })
+    const updated = await res.json()
+    setPosts(posts.map((p) => (p.id === updated.id ? updated : p)))
+    setEditingPost(null)
+    setEditContent("")
+    setEditImage(null)
+    toast({ title: "Post Updated", description: "Your post has been updated successfully." })
+  }
   const cancelEdit = () => {
     setEditingPost(null)
     setEditContent("")
     setEditImage(null)
   }
 
-  const handleDeletePost = (postId: number) => {
+  // Delete a post
+  const handleDeletePost = (postId: string) => {
     setDeletingPostId(postId)
     setDeleteDialogOpen(true)
   }
-
-  const confirmDeletePost = () => {
-    if (deletingPostId !== null) {
-      setPosts(posts.filter((post) => post.id !== deletingPostId))
-      setDeleteDialogOpen(false)
-      setDeletingPostId(null)
-
-      toast({
-        title: "Post Deleted",
-        description: "Your post has been deleted successfully.",
-      })
-    }
+  const confirmDeletePost = async () => {
+    if (!deletingPostId) return
+    await fetch("/api/connect/posts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: deletingPostId }),
+    })
+    setPosts(posts.filter((post) => post.id !== deletingPostId))
+    setDeleteDialogOpen(false)
+    setDeletingPostId(null)
+    toast({ title: "Post Deleted", description: "Your post has been deleted successfully." })
   }
 
-  const handleReportPost = (postId: number) => {
+  // Like/unlike a post
+  const handleLike = async (postId: string, liked: boolean) => {
+    if (liked) {
+      await fetch("/api/connect/likes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: postId, user_id: userId }),
+      })
+    } else {
+      await fetch("/api/connect/likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: postId, user_id: userId }),
+      })
+    }
+    fetchPosts()
+  }
+
+  // Fetch comments for a post
+  const fetchComments = async (postId: string) => {
+    const res = await fetch(`/api/connect/comments?post_id=${postId}`)
+    const data = await res.json()
+    setComments((prev) => ({ ...prev, [postId]: data }))
+  }
+
+  // Add a comment
+  const addComment = async (postId: string) => {
+    const content = commentInputs[postId]
+    if (!content?.trim()) return
+    const res = await fetch("/api/connect/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ post_id: postId, author_id: userId, content }),
+    })
+    const comment = await res.json()
+    setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), comment] }))
+    setCommentInputs((prev) => ({ ...prev, [postId]: "" }))
+  }
+
+  // Report a post or comment
+  const handleReportPost = (postId: string) => {
     setReportingPostId(postId)
     setReportDialogOpen(true)
   }
-
-  const submitReport = () => {
-    if (reportReason.trim()) {
-      setReportDialogOpen(false)
-      setConfirmationDialogOpen(true)
-      // In a real app, you would send this report to your backend
-    }
+  const submitReport = async () => {
+    if (!reportingPostId || !reportReason.trim()) return
+    await fetch("/api/connect/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reported_id: reportingPostId,
+        reported_type: "post",
+        reporter_id: userId,
+        reason: reportReason,
+      }),
+    })
+    setReportDialogOpen(false)
+    setConfirmationDialogOpen(true)
   }
-
   const closeConfirmation = () => {
     setConfirmationDialogOpen(false)
     setReportingPostId(null)
@@ -376,7 +412,7 @@ export default function ConnectPage() {
                               <AvatarFallback className="bg-gold-500 text-black">
                                 {post.author
                                   .split(" ")
-                                  .map((n) => n[0])
+                                  .map((n: string) => n[0])
                                   .join("")}
                               </AvatarFallback>
                             </Avatar>
